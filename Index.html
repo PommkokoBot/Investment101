@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockQuest: ลุยจักรวาลหุ้น</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#0b0f19', 800: '#151e2e', 700: '#1e293b' },
+                        brand: {
+                            blue: '#3b82f6',   // Blue-chip
+                            green: '#10b981',  // Growth
+                            pink: '#ec4899',   // Speculative
+                            gold: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        /* Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        #sliderBlue::-webkit-slider-runnable-track { background: #3b82f6; }
+        #sliderGrowth::-webkit-slider-runnable-track { background: #10b981; }
+        #sliderMeme::-webkit-slider-runnable-track { background: #ec4899; }
+
+        /* Animations */
+        .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-5px); }
+        
+        .pulse-soft { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .glass {
+            background: rgba(21, 30, 46, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+
+    <nav class="sticky top-0 z-50 glass border-b border-dark-700">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-gamepad text-brand-gold text-2xl"></i>
+                <span class="font-bold text-xl tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-brand-gold to-yellow-200">
+                    StockQuest
+                </span>
+            </div>
+            <div class="text-sm text-slate-400 font-semibold hidden md:block">
+                คู่มืออัปเวลเศรษฐีวัยทีน 🚀
+            </div>
+        </div>
+    </nav>
+
+    <section class="max-w-5xl mx-auto px-4 py-16">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4">
+                "หุ้น" คืออะไร? <span class="text-brand-gold">มันไม่ใช่กระดาษวิเศษนะ!</span>
+            </h1>
+            <p class="text-lg text-slate-400">จินตนาการว่า... น้องอยากเปิดร้าน "ชานมไข่มุก" สุดเจ๋ง แต่เงินไม่พอทำยังไงดี?</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 items-center">
+            <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 text-center hover-lift">
+                <div class="text-5xl mb-4">🧋</div>
+                <h3 class="text-xl font-bold text-brand-gold mb-2">1. ขาดทุนทรัพย์</h3>
+                <p class="text-sm text-slate-400">ร้านชานมต้องใช้เงิน 10,000 บาท แต่น้องมีแค่ 1,000 บาท ขาดอีกตั้งเยอะ!</p>
+            </div>
+            
+            <div class="hidden md:flex justify-center text-3xl text-slate-600">
+                <i class="fa-solid fa-arrow-right"></i>
+            </div>
+            
+            <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 text-center hover-lift border-t-4 border-t-brand-blue">
+                <div class="text-5xl mb-4">🤝</div>
+                <h3 class="text-xl font-bold text-brand-blue mb-2">2. หาหุ้นส่วน (ระดมทุน)</h3>
+                <p class="text-sm text-slate-400">น้องชวนเพื่อนอีก 9 คน มาลงขันคนละ 1,000 บาท ตอนนี้ได้เงินครบ 10,000 แล้ว!</p>
+            </div>
+
+            <div class="hidden md:flex justify-center text-3xl text-slate-600">
+                <i class="fa-solid fa-arrow-right"></i>
+            </div>
+            
+            <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 text-center hover-lift border-t-4 border-t-brand-green relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 text-7xl opacity-10">📄</div>
+                <div class="text-5xl mb-4">👑</div>
+                <h3 class="text-xl font-bold text-brand-green mb-2">3. ได้เป็น "เจ้าของร่วม"</h3>
+                <p class="text-sm text-slate-400">ทุกคนจะได้กระดาษยืนยัน (หุ้น) 1 ใบ ถ้าร้านขายดีกำไร 1,000 บาท ทุกคนก็จะได้ส่วนแบ่งคนละ 100 บาท!</p>
+            </div>
+        </div>
+        <div class="mt-8 bg-brand-blue/10 border border-brand-blue/30 rounded-xl p-4 text-center">
+            <p class="text-brand-blue font-semibold"><i class="fa-solid fa-lightbulb mr-2"></i> สรุป: การซื้อหุ้น ก็คือการเอาเงินไปขอเป็น "เจ้าของร่วม" ในบริษัทนั่นเอง!</p>
+        </div>
+    </section>
+
+    <section class="bg-dark-800 py-16 border-y border-dark-700">
+        <div class="max-w-5xl mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">แล้วทำไมราคาหุ้น ถึง <span class="text-brand-green">ขึ้นๆ</span> <span class="text-brand-pink">ลงๆ</span> ?</h2>
+                <p class="text-slate-400">หุ้นก็เหมือน <b>"รองเท้ารุ่น Limited Edition"</b> หรือ <b>"ไอเทมแรร์ในเกม"</b> ราคาขึ้นอยู่กับว่า "คนอยากได้มันแค่ไหน"</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Demand Up -->
+                <div class="bg-dark-900 rounded-2xl p-6 border border-brand-green/30 relative">
+                    <div class="absolute top-0 right-0 p-4 text-brand-green opacity-20 text-6xl">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-brand-green mb-4"><i class="fa-solid fa-fire mr-2"></i> ข่าวดี = คนแย่งกันซื้อ (ราคาขึ้น)</h3>
+                    <ul class="space-y-3 text-slate-300 text-sm relative z-10">
+                        <li class="flex items-start"><i class="fa-solid fa-check text-brand-green mt-1 mr-2"></i> บริษัททำกำไรทะลุเป้า!</li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-brand-green mt-1 mr-2"></i> ออกเกมใหม่ คนฮิตเล่นทั่วโลก (เช่น หุ้น Roblox หรือ Tencent)</li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-brand-green mt-1 mr-2"></i> <b>ผลลัพธ์:</b> คนอยากได้หุ้นตัวนี้เยอะ แต่คนขายน้อย ราคาเลยพุ่งปรี๊ด!</li>
+                    </ul>
+                </div>
+
+                <!-- Demand Down -->
+                <div class="bg-dark-900 rounded-2xl p-6 border border-brand-pink/30 relative">
+                    <div class="absolute top-0 right-0 p-4 text-brand-pink opacity-20 text-6xl">
+                        <i class="fa-solid fa-arrow-trend-down"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-brand-pink mb-4"><i class="fa-solid fa-poop mr-2"></i> ข่าวร้าย = คนหนีตาย (ราคาตก)</h3>
+                    <ul class="space-y-3 text-slate-300 text-sm relative z-10">
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-brand-pink mt-1 mr-2"></i> คู่แข่งทำของออกมาดีกว่า ขายไม่ออก</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-brand-pink mt-1 mr-2"></i> เศรษฐกิจแย่ คนไม่มีเงินเติมเกมซื้อของ</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-brand-pink mt-1 mr-2"></i> <b>ผลลัพธ์:</b> ทุกคนกลัวเจ๊ง รีบเทขายหุ้นทิ้งพร้อมกัน ราคาเลยดิ่งเหว!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-4 py-16">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4">หุ้นมีหลายแบบ เลือกให้ดีก่อนลงสนาม</h2>
+            <p class="text-slate-400">เหมือนเลือกตัวละครในเกม แต่ละสายมีจุดเด่นและความเสี่ยงต่างกัน</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Type 1 -->
+            <div class="bg-dark-800 rounded-2xl p-6 border border-brand-blue hover-lift flex flex-col h-full">
+                <div class="w-16 h-16 bg-brand-blue/20 rounded-full flex items-center justify-center text-3xl mb-4 text-brand-blue">
+                    🦆
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">หุ้นยักษ์ใหญ่ (Blue-Chip)</h3>
+                <p class="text-brand-blue text-xs font-bold mb-3 uppercase tracking-wider">สายแทงค์ / ปลอดภัย</p>
+                <p class="text-sm text-slate-400 mb-4 flex-grow">เปรียบเหมือน "ห่านทองคำ" เป็นบริษัทใหญ่โตระดับประเทศ (เช่น ปตท., ธนาคารใหญ่, โรงพยาบาล) ไม่หวือหวา โตช้าๆ แต่มี "เงินปันผล" แจกให้สม่ำเสมอ</p>
+                <div class="bg-dark-900 rounded-lg p-3 text-xs text-slate-300 mt-auto">
+                    <span class="text-green-400">ข้อดี:</span> มั่นคง เจ๊งยาก<br>
+                    <span class="text-red-400">ข้อเสีย:</span> โตช้า ไม่รวยข้ามคืน
+                </div>
+            </div>
+
+            <!-- Type 2 -->
+            <div class="bg-dark-800 rounded-2xl p-6 border border-brand-green hover-lift flex flex-col h-full">
+                <div class="w-16 h-16 bg-brand-green/20 rounded-full flex items-center justify-center text-3xl mb-4 text-brand-green">
+                    🚀
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">หุ้นเติบโต (Growth)</h3>
+                <p class="text-brand-green text-xs font-bold mb-3 uppercase tracking-wider">สายเวทย์ / พลังโจมตีสูง</p>
+                <p class="text-sm text-slate-400 mb-4 flex-grow">เปรียบเหมือน "จรวด" เป็นบริษัทเทคโนโลยีใหม่ๆ (เช่น Tesla, Apple, Nvidia) ที่กำลังขยายตัวเร็วมาก ราคาวิ่งแรง แต่ก็แกว่งแรงถ้างบออกมาไม่ตามเป้า</p>
+                <div class="bg-dark-900 rounded-lg p-3 text-xs text-slate-300 mt-auto">
+                    <span class="text-green-400">ข้อดี:</span> โอกาสกำไรสูงมากในระยะยาว<br>
+                    <span class="text-red-400">ข้อเสีย:</span> ราคาเหวี่ยงแรง ต้องใจแข็ง
+                </div>
+            </div>
+
+            <!-- Type 3 -->
+            <div class="bg-dark-800 rounded-2xl p-6 border border-brand-pink hover-lift flex flex-col h-full">
+                <div class="w-16 h-16 bg-brand-pink/20 rounded-full flex items-center justify-center text-3xl mb-4 text-brand-pink">
+                    🎢
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">หุ้นซิ่ง / เหรียญมีม (Speculative)</h3>
+                <p class="text-brand-pink text-xs font-bold mb-3 uppercase tracking-wider">สายเสี่ยงโชค / กาชา</p>
+                <p class="text-sm text-slate-400 mb-4 flex-grow">เปรียบเหมือน "รถไฟเหาะ" เป็นบริษัทที่ไม่มีผลกำไรชัดเจน หรือเหรียญแปลกๆ อาศัยแค่ "ข่าวลือ" วิ่งขึ้น 100% ในวันเดียว และร่วง 90% ในอีกวัน!</p>
+                <div class="bg-dark-900 rounded-lg p-3 text-xs text-slate-300 mt-auto">
+                    <span class="text-green-400">ข้อดี:</span> อาจรวยเร็วแบบงงๆ (ถ้าโชคดี)<br>
+                    <span class="text-red-400">ข้อเสีย:</span> โอกาสเงินหายเกลี้ยง 99%
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-dark-900 relative">
+        <!-- Background decoration -->
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-gold to-transparent opacity-50"></div>
+        
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="bg-dark-800 rounded-3xl p-6 md:p-10 border border-dark-700 shadow-2xl">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-2"><i class="fa-solid fa-flask text-brand-green mr-2"></i> ห้องทดลองเศรษฐี (Simulator)</h2>
+                    <p class="text-slate-400">สมมติว่าน้องมีเงินเก็บ <b>10,000 บาท</b> ลองจัดสรรเงินลงทุนตามสไตล์ตัวเอง แล้วกดดูผลลัพธ์ในอีก 5 ปีข้างหน้า!</p>
+                </div>
+
+                <div class="grid lg:grid-cols-12 gap-8">
+                    <!-- Control Panel -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="bg-dark-900 p-4 rounded-xl border border-dark-700">
+                            <div class="flex justify-between items-end mb-4">
+                                <span class="text-sm text-slate-400">เงินลงทุนคงเหลือ</span>
+                                <span class="text-2xl font-bold text-brand-gold" id="budgetDisplay">10,000 ฿</span>
+                            </div>
+                            
+                            <!-- Slider 1 -->
+                            <div class="mb-5">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-semibold text-brand-blue flex items-center"><i class="fa-solid fa-shield mr-1"></i> หุ้นยักษ์ใหญ่ (Blue-chip)</label>
+                                    <span class="text-sm text-slate-300" id="valBlue">0 ฿</span>
+                                </div>
+                                <input type="range" id="sliderBlue" class="sim-slider" min="0" max="10000" step="500" value="0">
+                            </div>
+
+                            <!-- Slider 2 -->
+                            <div class="mb-5">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-semibold text-brand-green flex items-center"><i class="fa-solid fa-rocket mr-1"></i> หุ้นเติบโต (Growth)</label>
+                                    <span class="text-sm text-slate-300" id="valGrowth">0 ฿</span>
+                                </div>
+                                <input type="range" id="sliderGrowth" class="sim-slider" min="0" max="10000" step="500" value="0">
+                            </div>
+
+                            <!-- Slider 3 -->
+                            <div class="mb-5">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-sm font-semibold text-brand-pink flex items-center"><i class="fa-solid fa-dice mr-1"></i> หุ้นซิ่ง (Speculative)</label>
+                                    <span class="text-sm text-slate-300" id="valMeme">0 ฿</span>
+                                </div>
+                                <input type="range" id="sliderMeme" class="sim-slider" min="0" max="10000" step="500" value="0">
+                            </div>
+                        </div>
+
+                        <button onclick="runSimulation()" id="simBtn" class="w-full bg-gradient-to-r from-brand-blue to-brand-green hover:from-blue-500 hover:to-emerald-400 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                            <i class="fa-solid fa-forward-fast"></i> ข้ามเวลาไป 5 ปี!
+                        </button>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="lg:col-span-7 flex flex-col">
+                        <div class="bg-dark-900 rounded-xl p-4 border border-dark-700 h-[300px] relative mb-4">
+                            <!-- Overlay before simulation -->
+                            <div id="chartOverlay" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-xl transition-opacity duration-500">
+                                <i class="fa-solid fa-chart-pie text-5xl text-slate-600 mb-3 pulse-soft"></i>
+                                <p class="text-slate-400 font-semibold">จัดสรรเงินด้านซ้าย แล้วกดปุ่มเพื่อดูผลลัพธ์</p>
+                            </div>
+                            <canvas id="simChart"></canvas>
+                        </div>
+
+                        <!-- Result Summary Box -->
+                        <div id="resultBox" class="hidden bg-dark-900 rounded-xl p-5 border border-dark-700 transition-all duration-500">
+                            <h3 class="text-lg font-bold text-white mb-2" id="resultTitle">ผลลัพธ์พอร์ตของน้อง!</h3>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-slate-400 text-sm">เงินต้น: 10,000 ฿</span>
+                                <span class="text-sm font-semibold" id="resultTotalLabel">กลายเป็น: <span id="resultTotal" class="text-xl">0 ฿</span></span>
+                            </div>
+                            <p class="text-sm text-slate-300 leading-relaxed bg-dark-800 p-3 rounded-lg border-l-4" id="resultDesc">
+                                <!-- Text generated by JS -->
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="msgModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300" id="msgModalContent">
+            <div class="text-center text-brand-gold text-4xl mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 class="text-xl font-bold text-center mb-2 text-white">เงินไม่พอ!</h3>
+            <p class="text-slate-400 text-sm text-center mb-6">น้องมีเงินลงทุนแค่ 10,000 บาท ปรับสัดส่วนใหม่นะ</p>
+            <button onclick="closeModal()" class="w-full bg-dark-700 hover:bg-dark-600 py-2 rounded-lg font-bold text-white transition-colors">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- UI Setup ---
+        const TOTAL_BUDGET = 10000;
+        let currentBudget = TOTAL_BUDGET;
+
+        const sliderBlue = document.getElementById('sliderBlue');
+        const sliderGrowth = document.getElementById('sliderGrowth');
+        const sliderMeme = document.getElementById('sliderMeme');
+        
+        const valBlue = document.getElementById('valBlue');
+        const valGrowth = document.getElementById('valGrowth');
+        const valMeme = document.getElementById('valMeme');
+        const budgetDisplay = document.getElementById('budgetDisplay');
+        const simBtn = document.getElementById('simBtn');
+        const chartOverlay = document.getElementById('chartOverlay');
+        const resultBox = document.getElementById('resultBox');
+
+        // Modal Elements
+        const modal = document.getElementById('msgModal');
+        const modalContent = document.getElementById('msgModalContent');
+
+        function formatB(num) {
+            return Math.round(num).toLocaleString('en-US') + ' ฿';
+        }
+
+        function showModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // --- Slider Logic (Dependent Sliders) ---
+        // To make it easy, if user slides one, we calculate total. If exceeds, we stop it.
+        function updateSliders(e) {
+            let b = parseInt(sliderBlue.value);
+            let g = parseInt(sliderGrowth.value);
+            let m = parseInt(sliderMeme.value);
+            let total = b + g + m;
+
+            // If exceeds budget, revert the current slider
+            if (total > TOTAL_BUDGET) {
+                if (e.target === sliderBlue) sliderBlue.value = TOTAL_BUDGET - g - m;
+                if (e.target === sliderGrowth) sliderGrowth.value = TOTAL_BUDGET - b - m;
+                if (e.target === sliderMeme) sliderMeme.value = TOTAL_BUDGET - b - g;
+                
+                // Recalculate
+                b = parseInt(sliderBlue.value);
+                g = parseInt(sliderGrowth.value);
+                m = parseInt(sliderMeme.value);
+                total = b + g + m;
+                
+                // Optional: show hint if they try to pull too hard
+                if(e.type === 'change') showModal();
+            }
+
+            currentBudget = TOTAL_BUDGET - total;
+            
+            // Update UI Texts
+            valBlue.innerText = formatB(b);
+            valGrowth.innerText = formatB(g);
+            valMeme.innerText = formatB(m);
+            
+            budgetDisplay.innerText = formatB(currentBudget);
+            
+            if(currentBudget < 10000 && currentBudget >= 0) {
+                budgetDisplay.classList.remove('text-brand-pink');
+                budgetDisplay.classList.add('text-brand-gold');
+                simBtn.disabled = false;
+            }
+        }
+
+        sliderBlue.addEventListener('input', updateSliders);
+        sliderGrowth.addEventListener('input', updateSliders);
+        sliderMeme.addEventListener('input', updateSliders);
+        sliderBlue.addEventListener('change', updateSliders);
+        sliderGrowth.addEventListener('change', updateSliders);
+        sliderMeme.addEventListener('change', updateSliders);
+
+        // --- Simulation & Chart Logic ---
+        let simChartInstance = null;
+
+        function runSimulation() {
+            // Hide overlay
+            chartOverlay.classList.add('opacity-0');
+            setTimeout(() => chartOverlay.classList.add('hidden'), 500);
+
+            // Show result box
+            resultBox.classList.remove('hidden');
+
+            const initBlue = parseInt(sliderBlue.value);
+            const initGrowth = parseInt(sliderGrowth.value);
+            const initMeme = parseInt(sliderMeme.value);
+            const initCash = currentBudget; // Money not invested
+
+            // Data arrays (6 years: Year 0 to Year 5)
+            const labels = ['ปีที่ 0', 'ปีที่ 1', 'ปีที่ 2', 'ปีที่ 3', 'ปีที่ 4', 'ปีที่ 5'];
+            let totalData = [];
+            
+            let valB = initBlue;
+            let valG = initGrowth;
+            let valM = initMeme;
+
+            // Generate realistic-ish fake data based on stock types
+            for (let i = 0; i <= 5; i++) {
+                if (i === 0) {
+                    totalData.push(initCash + valB + valG + valM);
+                    continue;
+                }
+
+                // Blue-chip: Steady 4-6% growth + dividends
+                valB = valB * (1 + (Math.random() * 0.04 + 0.03)); 
+                
+                // Growth: High volatility, overall upward trend (range: -10% to +30%)
+                let growthRate = (Math.random() * 0.40) - 0.10;
+                valG = valG * (1 + growthRate);
+
+                // Meme: Spikes then crashes
+                if (i === 1) {
+                    valM = valM * (1 + (Math.random() * 2.0)); // Spikes 0-200%
+                } else if (i === 2) {
+                    valM = valM * 0.2; // Crashes 80%
+                } else {
+                    valM = valM * (1 + ((Math.random() * 0.2) - 0.15)); // Stagnates/bleeds
+                }
+
+                // Total portfolio value
+                totalData.push(initCash + valB + valG + valM);
+            }
+
+            const finalValue = totalData[5];
+            
+            // Generate Insightful Text
+            generateInsight(initBlue, initGrowth, initMeme, initCash, finalValue);
+
+            // Update or Create Chart
+            const ctx = document.getElementById('simChart').getContext('2d');
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = 'Prompt';
+
+            if (simChartInstance) {
+                simChartInstance.data.datasets[0].data = totalData;
+                simChartInstance.update();
+            } else {
+                simChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'มูลค่าพอร์ตรวม (บาท)',
+                            data: totalData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#3b82f6',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1e293b',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 14 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return formatB(context.parsed.y);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y: { 
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                beginAtZero: true,
+                                min: 0
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function generateInsight(b, g, m, cash, finalVal) {
+            const desc = document.getElementById('resultDesc');
+            const totalEl = document.getElementById('resultTotal');
+            const resultTotalLabel = document.getElementById('resultTotalLabel');
+
+            totalEl.innerText = formatB(finalVal);
+
+            // Color coding the result
+            if (finalVal > TOTAL_BUDGET) {
+                resultTotalLabel.className = "text-brand-green font-bold";
+            } else {
+                resultTotalLabel.className = "text-brand-pink font-bold";
+            }
+
+            let text = "";
+
+            if (cash === TOTAL_BUDGET) {
+                text = "น้องเลือกเก็บเงินไว้เฉยๆ ไม่ลงทุนเลย เงินต้นยังอยู่ครบ แต่ระวังนะ <b>'เงินเฟ้อ'</b> จะทำให้ของแพงขึ้นในอนาคต จนเงิน 10,000 บาทนี้ซื้อของได้น้อยลง!";
+                desc.style.borderLeftColor = "#94a3b8";
+            } 
+            else if (m > (TOTAL_BUDGET * 0.6)) {
+                text = "อุ๊ย! น้องลงทุนแบบ <b>'ซิ่งสุดใจ'</b> (All-in หุ้นซิ่ง) หวังรวยเร็วใช่ไหม? ตอนแรกอาจจะเห็นกำไรพุ่งปรี๊ด แต่สุดท้ายฟองสบู่แตก เงินต้นหายวับไปเกือบหมด นี่แหละความน่ากลัวของการเก็งกำไรโดยไม่ศึกษา!";
+                desc.style.borderLeftColor = "#ec4899"; // pink
+            }
+            else if (b > (TOTAL_BUDGET * 0.6)) {
+                text = "เยี่ยมาก! น้องเน้น <b>'ความปลอดภัย'</b> ลงทุนในบริษัทใหญ่ที่มั่นคง เงินเติบโตช้าๆ แต่มั่นใจได้ว่าเงินไม่หายแถมได้ปันผลทุกปี เหมาะสำหรับมือใหม่ที่เพิ่งเริ่มต้นสุดๆ";
+                desc.style.borderLeftColor = "#3b82f6"; // blue
+            }
+            else if (g > (TOTAL_BUDGET * 0.6)) {
+                text = "สายเทคฯ! น้องเลือกลงทุนใน <b>'บริษัทเติบโต'</b> แม้ระหว่างทางราคาจะสวิงขึ้นลงจนใจหายใจคว่ำ แต่พอบริษัททำสำเร็จ พอร์ตของน้องก็โตขึ้นอย่างสวยงามในระยะยาว!";
+                desc.style.borderLeftColor = "#10b981"; // green
+            }
+            else {
+                text = "ฉลาดมาก! น้องรู้จัก <b>'การกระจายความเสี่ยง'</b> (Diversification) มีทั้งหุ้นมั่นคงไว้กันตาย และหุ้นเติบโตไว้ทำกำไร พอร์ตโดยรวมเลยโตแบบมีเสถียรภาพ สมกับเป็นนักลงทุนตัวจริง!";
+                desc.style.borderLeftColor = "#f59e0b"; // gold
+            }
+
+            desc.innerHTML = text;
+        }
+
+        // Initialize sliders on load
+        window.onload = () => {
+            sliderBlue.value = 0;
+            sliderGrowth.value = 0;
+            sliderMeme.value = 0;
+            updateSliders({target: null});
+        };
+    </script>
+</body>
+</html>
